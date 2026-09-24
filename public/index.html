@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal IT - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        html[data-bs-theme="light"] body { background-color: #f4f6f9; }
+        html[data-bs-theme="dark"] .bg-white { background-color: #212529 !important; border-color: #373b3e !important; }
+        .hover-card { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; text-decoration: none; color: inherit; }
+        .hover-card:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
+        html[data-bs-theme="dark"] .hover-card:hover { box-shadow: 0 .5rem 1rem rgba(0,0,0,.5)!important; }
+        .icon-lg { font-size: 2.5rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-5 shadow">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="#"><i class="bi bi-hdd-network"></i> IT Dashboard</a>
+            <div class="ms-auto d-flex">
+                <button class="btn btn-outline-light me-2" id="btnDarkMode" title="Alternar Modo Oscuro"><i class="bi bi-moon-stars"></i></button>
+                <button class="btn btn-outline-danger" onclick="fetch('/api/logout', {method:'POST'}).then(()=>window.location.href='/login.html')" title="Cerrar Sesión"><i class="bi bi-box-arrow-right"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Saludo Dinámico -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h2 class="fw-bold" id="saludoUsuario">Cargando...</h2>
+                <p class="text-muted" id="subtituloRol">Selecciona un módulo para comenzar</p>
+            </div>
+        </div>
+
+        <!-- Grilla de Módulos -->
+        <div class="row g-4 justify-content-center">
+            
+            <!-- Módulos de Admin (Se ocultan para Técnicos) -->
+            <div class="col-md-4 col-sm-6" id="moduloInventario">
+                <a href="inventario.html" class="card shadow-sm h-100 hover-card bg-white border-0 text-center p-4">
+                    <div class="card-body">
+                        <i class="bi bi-pc-display-horizontal icon-lg text-primary mb-3"></i>
+                        <h5 class="card-title fw-bold">Inventario CUA</h5>
+                        <p class="card-text text-muted small">Gestión de activos, equipos y asignaciones.</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-4 col-sm-6" id="moduloGlpi">
+                <a href="glpi.html" class="card shadow-sm h-100 hover-card bg-white border-0 text-center p-4">
+                    <div class="card-body">
+                        <i class="bi bi-ticket-detailed icon-lg text-success mb-3"></i>
+                        <h5 class="card-title fw-bold">GLPI</h5>
+                        <p class="card-text text-muted small">Visualización y cruce de tickets de GLPI.</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-4 col-sm-6" id="moduloInstalaciones">
+                <a href="instalaciones.html" class="card shadow-sm h-100 hover-card bg-white border-0 text-center p-4">
+                    <div class="card-body">
+                        <i class="bi bi-tools icon-lg text-info mb-3"></i>
+                        <h5 class="card-title fw-bold">Instalaciones</h5>
+                        <p class="card-text text-muted small">Control de instalaciones de equipos en terreno.</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Módulos Generales (Visibles para todos) -->
+            <div class="col-md-4 col-sm-6">
+                <a href="avaya.html" class="card shadow-sm h-100 hover-card bg-white border-0 text-center p-4">
+                    <div class="card-body">
+                        <i class="bi bi-telephone icon-lg text-warning mb-3"></i>
+                        <h5 class="card-title fw-bold">Fallas Avaya</h5>
+                        <p class="card-text text-muted small">Registro y notificación de teléfonos dañados.</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-4 col-sm-6">
+                <a href="devoluciones.html" class="card shadow-sm h-100 hover-card bg-white border-0 text-center p-4">
+                    <div class="card-body">
+                        <i class="bi bi-box-arrow-left icon-lg text-danger mb-3"></i>
+                        <h5 class="card-title fw-bold">Devoluciones a Bodega</h5>
+                        <p class="card-text text-muted small">Registro de equipos dados de baja o en retorno.</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-4 col-sm-6">
+                <a href="recepciones.html" class="card shadow-sm h-100 hover-card bg-white border-0 text-center p-4">
+                    <div class="card-body">
+                        <i class="bi bi-box-arrow-in-right icon-lg text-secondary mb-3"></i>
+                        <h5 class="card-title fw-bold">Recepciones IT</h5>
+                        <p class="card-text text-muted small">Ingreso de equipos nuevos desde bodega.</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Módulo Admin de Usuarios -->
+            <div class="col-md-4 col-sm-6 d-none" id="moduloAdmin">
+                <a href="usuarios.html" class="card shadow-sm h-100 hover-card bg-dark text-white border-0 text-center p-4">
+                    <div class="card-body">
+                        <i class="bi bi-shield-lock icon-lg text-light mb-3"></i>
+                        <h5 class="card-title fw-bold">Gestión de Usuarios</h5>
+                        <p class="card-text text-light small opacity-75">Crear y eliminar accesos al sistema.</p>
+                    </div>
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Modo Oscuro
+        const btnDark = document.getElementById('btnDarkMode');
+        const htmlEl = document.documentElement;
+        if (localStorage.getItem('theme') === 'dark') { htmlEl.setAttribute('data-bs-theme', 'dark'); btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>'; }
+        btnDark.addEventListener('click', () => {
+            if (htmlEl.getAttribute('data-bs-theme') === 'dark') {
+                htmlEl.setAttribute('data-bs-theme', 'light'); localStorage.setItem('theme', 'light'); btnDark.innerHTML = '<i class="bi bi-moon-stars"></i>';
+            } else {
+                htmlEl.setAttribute('data-bs-theme', 'dark'); localStorage.setItem('theme', 'dark'); btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+            }
+        });
+
+        // Obtener datos del usuario logueado
+        async function cargarDatosUsuario() {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) throw new Error('No autorizado');
+                
+                const data = await res.json();
+                const nombreCapitalizado = data.user.charAt(0).toUpperCase() + data.user.slice(1);
+                
+                document.getElementById('saludoUsuario').innerHTML = `¡Hola, ${nombreCapitalizado}! <i class="bi bi-emoji-smile"></i>`;
+                
+                if(data.rol === 'admin') {
+                    document.getElementById('subtituloRol').innerHTML = '<span class="badge bg-danger">Perfil Administrador</span> - Control total';
+                    document.getElementById('moduloAdmin').classList.remove('d-none');
+                } else {
+                    document.getElementById('subtituloRol').innerHTML = '<span class="badge bg-secondary">Perfil Técnico</span> - Selecciona un módulo para comenzar';
+                    // Ocultar tarjetas no permitidas para técnicos
+                    document.getElementById('moduloInventario').classList.add('d-none');
+                    document.getElementById('moduloGlpi').classList.add('d-none');
+                    document.getElementById('moduloInstalaciones').classList.add('d-none');
+                }
+            } catch (err) {
+                window.location.href = '/login.html';
+            }
+        }
+
+        cargarDatosUsuario();
+    </script>
+</body>
+</html>

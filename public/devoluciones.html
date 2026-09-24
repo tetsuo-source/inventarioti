@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devoluciones a Bodega</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>body { background-color: #000000; } .dashboard-fijo { background-color: #000000; z-index: 1020; }</style>
+    <style>
+        /* Modo Claro por defecto */
+        html[data-bs-theme="light"] body { background-color: #f4f6f9; }
+        html[data-bs-theme="light"] .dashboard-fijo { background-color: #f4f6f9; z-index: 1020; }
+        
+        /* Ajustes para Modo Oscuro (Corrigiendo el fondo blanco rebelde) */
+        html[data-bs-theme="dark"] body { background-color: #1a1d20; }
+        html[data-bs-theme="dark"] .dashboard-fijo { background-color: #1a1d20; border-color: #2c3034 !important; z-index: 1020; }
+        html[data-bs-theme="dark"] .bg-white { background-color: #212529 !important; border-color: #373b3e !important; color: #dee2e6; }
+        html[data-bs-theme="dark"] .text-secondary { color: #adb5bd !important; }
+        
+        /* Reparación específica para Tablas en Bootstrap 5 */
+        html[data-bs-theme="dark"] .table { 
+            --bs-table-bg: transparent; 
+            --bs-table-color: #dee2e6; 
+            --bs-table-border-color: #373b3e; 
+        }
+        /* Para las filas de equipos "Notificados" */
+        html[data-bs-theme="dark"] .table-light { 
+            --bs-table-bg: #2c3034 !important; 
+            --bs-table-color: #adb5bd !important; 
+        }
+        /* Efecto al pasar el mouse */
+        html[data-bs-theme="dark"] .table-hover > tbody > tr:hover > * { 
+            --bs-table-accent-bg: #373b3e; 
+            color: #fff; 
+        }
+    </style>
+</head>
+<body>
+   <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="index.html"><i class="bi bi-hdd-network"></i> IT Dashboard</a>
+            
+            <!-- Navegación Simplificada -->
+            <div class="navbar-nav me-auto align-items-center">
+                <a class="nav-link" href="index.html"><i class="bi bi-house-door"></i> Inicio</a>
+                
+                <!-- Separador visual y nombre de la página actual -->
+                <i class="bi bi-chevron-right text-secondary mx-2" style="font-size: 0.8rem;"></i>
+                <span  class="nav-link" href="devoluciones.html">Devoluciones</span>
+                <span class="nav-link" href="recepciones.html">Recepciones</span>
+                <span class="nav-link" href="avaya.html">Fallas Avaya</span>
+            </div>
+        <!-- Pega esto a la derecha de tus enlaces en el Navbar -->
+            <button class="btn btn-outline-light ms-auto d-flex align-items-center" id="btnDarkMode" title="Alternar Modo Oscuro">
+                <i class="bi bi-moon-stars"></i>
+            </button>
+    </nav>
+
+    <div class="sticky-top dashboard-fijo shadow-sm border-bottom py-3 mb-4">
+        <div class="container-fluid px-4">
+            <div class="row align-items-center">
+                <div class="col-xl-4 col-md-4 mb-2 mb-xl-0">
+                    <div class="card bg-primary text-white shadow-sm border-0 h-100">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div><h6 class="mb-1 text-uppercase small">Total Devoluciones</h6><h3 class="mb-0" id="kpiTotal">0</h3></div>
+                            <i class="bi bi-box-arrow-left text-white-50 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-4 col-md-4 mb-2 mb-xl-0">
+                    <div class="card bg-warning text-dark shadow-sm border-0 h-100">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div><h6 class="mb-1 text-uppercase small">Pendientes de Envío</h6><h3 class="mb-0" id="kpiPendientes">0</h3></div>
+                            <i class="bi bi-hourglass-split text-dark-50 fs-1" style="opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-4 col-md-4 mb-2 mb-xl-0">
+                    <div class="card bg-success text-white shadow-sm border-0 h-100">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div><h6 class="mb-1 text-uppercase small">Entregados a Bodega</h6><h3 class="mb-0" id="kpiEnviados">0</h3></div>
+                            <i class="bi bi-check2-all text-white-50 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid px-4">
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-clipboard-x"></i> Registrar Devolución</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="formDevoluciones">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Técnico a cargo</label>
+                                <input type="text" id="tecnicoInput" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Equipo (Modelo / Descripción)</label>
+                                <input type="text" id="equipoInput" class="form-control" placeholder="Ej: Monitor Dell 24''" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">S/N o Activo Fijo</label>
+                                <input type="text" id="serieInput" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Motivo de devolución</label>
+                                <textarea id="motivoInput" class="form-control" rows="2" style="resize: none;" placeholder="Ej: Equipo dado de baja, pantalla rota..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-circle"></i> Agregar a Lista</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mt-4 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-primary mb-3">Notificar a Bodega</h6>
+                        <button id="btnEnviarCorreo" class="btn btn-outline-primary w-100"><i class="bi bi-envelope-paper"></i> Enviar Pendientes</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-clock-history"></i> Histórico de Devoluciones</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: calc(100vh - 350px); overflow-y: auto;">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th class="px-3">Fecha</th>
+                                        <th>Técnico</th>
+                                        <th>Equipo</th>
+                                        <th>Serie / AF</th>
+                                        <th>Motivo</th>
+                                        <th>Estado</th>
+                                        <th class="text-end px-3">Borrar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaDevoluciones"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+        let devData = [];
+        let editandoId = null;
+
+        function actualizarDashboard() {
+            const total = devData.length;
+            const enviados = devData.filter(i => i.enviado).length;
+            document.getElementById('kpiTotal').innerText = total;
+            document.getElementById('kpiEnviados').innerText = enviados;
+            document.getElementById('kpiPendientes').innerText = total - enviados;
+        }
+
+        function renderizarTabla() {
+            const tbody = document.getElementById('tablaDevoluciones');
+            tbody.innerHTML = '';
+            if (devData.length === 0) return tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">Sin registros</td></tr>';
+
+            [...devData].reverse().forEach(item => {
+                const badge = item.enviado ? '<span class="badge bg-success">Notificado</span>' : '<span class="badge bg-warning text-dark">Pendiente</span>';
+                
+                const btnEditar = `<button onclick="prepararEdicion(${item.id})" class="btn btn-sm btn-outline-primary border-0 me-1" title="Editar"><i class="bi bi-pencil"></i></button>`;
+                const btnEliminar = `<button onclick="eliminarRegistro(${item.id})" class="btn btn-sm btn-outline-danger border-0" title="Borrar"><i class="bi bi-trash3"></i></button>`;
+                
+                // NUEVO: Casilla de selección solo para los equipos que ya fueron enviados
+                const checkbox = item.enviado ? `<input type="checkbox" class="form-check-input chk-reenviar me-2" value="${item.id}" title="Seleccionar para reenviar">` : '';
+                
+                const tr = document.createElement('tr');
+                if(item.enviado) tr.classList.add('table-light', 'text-muted');
+                if(item.id === editandoId) tr.classList.add('table-warning');
+                
+                tr.innerHTML = `
+                    <td class="px-3 small d-flex align-items-center">${checkbox} ${item.fecha}</td>
+                    <td>${item.tecnico}</td>
+                    <td class="fw-bold text-primary">${item.equipo}</td>
+                    <td>${item.serie}</td>
+                    <td style="max-width: 150px; word-wrap: break-word;">${item.motivo}</td>
+                    <td>${badge}</td>
+                    <td class="text-end px-3 text-nowrap">${btnEditar}${btnEliminar}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // NUEVO: Inyectar botón de "Reenviar Seleccionados" si no existe
+            if (!document.getElementById('btnReenviarVarios')) {
+                const contenedorBotones = document.getElementById('btnEnviarCorreo').parentElement;
+                const btnReenviar = document.createElement('button');
+                btnReenviar.id = 'btnReenviarVarios';
+                btnReenviar.className = 'btn btn-outline-success w-100 mt-2';
+                btnReenviar.innerHTML = '<i class="bi bi-envelope-check"></i> Reenviar Seleccionados';
+                btnReenviar.onclick = reenviarVariosCorreo;
+                contenedorBotones.appendChild(btnReenviar);
+            }
+        }
+
+        // NUEVA FUNCIÓN: Genera el correo con todos los seleccionados
+        window.reenviarVariosCorreo = function() {
+            // Buscar cuáles casillas están marcadas
+            const checkboxes = document.querySelectorAll('.chk-reenviar:checked');
+            if (checkboxes.length === 0) return alert("Selecciona al menos un equipo notificado marcando su casilla (a la izquierda de la fecha) para reenviar.");
+            
+            const idsSeleccionados = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            const equiposAReenviar = devData.filter(i => idsSeleccionados.includes(i.id));
+            
+            let cuerpo = "Estimado Fredy ,\n\nSe envían los siguientes equipos en devolución a bodega:\n\n";
+            
+            equiposAReenviar.forEach((i, index) => {
+                const motivoLimpio = (i.motivo || '').replace(/[\r\n]+/g, ' ').trim();
+                cuerpo += `${index + 1}. Equipo: ${i.equipo}  |  S/N: ${i.serie}  |  Téc: ${i.tecnico}  |  Motivo: ${motivoLimpio}\n`;
+            });
+            cuerpo += "\nQuedo atento a la recepción.\nSaludos.";
+            
+            // Reemplaza por el correo real de bodega
+            const correoPara = "famontecinos@uandes.cl"; 
+            const correoCC = "frubilar@uandes.cl;ex_jfuentes@uandes.cl;ex_sllanos@uandes.cl;ex_eaguirre@uandes.cl;ex_lmelendez@uandes.cl";
+            window.location.href = `mailto:${correoPara}?cc=${correoCC}&subject=${encodeURIComponent("Reenvío - Equipos Devueltos a Bodega")}&body=${encodeURIComponent(cuerpo)}`;
+            
+            // Desmarcar las casillas después de abrir el correo para que quede limpio
+            checkboxes.forEach(cb => cb.checked = false);
+        };
+
+        window.prepararEdicion = function(id) {
+            const item = devData.find(i => i.id === id);
+            if(!item) return;
+            editandoId = id;
+            
+            document.getElementById('tecnicoInput').value = item.tecnico;
+            document.getElementById('equipoInput').value = item.equipo;
+            document.getElementById('serieInput').value = item.serie;
+            document.getElementById('motivoInput').value = item.motivo;
+            
+            const btnSubmit = document.querySelector('#formDevoluciones button[type="submit"]');
+            btnSubmit.innerHTML = '<i class="bi bi-save"></i> Guardar Cambios';
+            btnSubmit.classList.replace('btn-primary', 'btn-success');
+            
+            if(!document.getElementById('btnCancelarEdicion')) {
+                const btnCancel = document.createElement('button');
+                btnCancel.id = 'btnCancelarEdicion';
+                btnCancel.type = 'button';
+                btnCancel.className = 'btn btn-secondary w-100 mt-2';
+                btnCancel.innerHTML = '<i class="bi bi-x-circle"></i> Cancelar Edición';
+                btnCancel.onclick = cancelarEdicion;
+                document.getElementById('formDevoluciones').appendChild(btnCancel);
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            renderizarTabla();
+        };
+
+        window.cancelarEdicion = function() {
+            editandoId = null;
+            document.getElementById('formDevoluciones').reset();
+            const btnSubmit = document.querySelector('#formDevoluciones button[type="submit"]');
+            btnSubmit.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar a Lista';
+            btnSubmit.classList.replace('btn-success', 'btn-primary');
+            const btnCancel = document.getElementById('btnCancelarEdicion');
+            if(btnCancel) btnCancel.remove();
+            renderizarTabla();
+        };
+
+        async function cargarDatos() {
+            const res = await fetch('/api/devoluciones');
+            devData = await res.json();
+            actualizarDashboard();
+            renderizarTabla();
+        }
+
+        document.getElementById('formDevoluciones').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                tecnico: document.getElementById('tecnicoInput').value,
+                equipo: document.getElementById('equipoInput').value,
+                serie: document.getElementById('serieInput').value,
+                motivo: document.getElementById('motivoInput').value
+            };
+            
+            if (editandoId) {
+                await fetch(`/api/devoluciones/${editandoId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                cancelarEdicion();
+            } else {
+                await fetch('/api/devoluciones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                document.getElementById('formDevoluciones').reset();
+            }
+            await cargarDatos();
+        });
+
+        async function eliminarRegistro(id) {
+            if(confirm('¿Borrar registro?')) {
+                await fetch(`/api/devoluciones/${id}`, { method: 'DELETE' });
+                if(editandoId === id) cancelarEdicion();
+                await cargarDatos();
+            }
+        }
+
+        // El botón original para enviar los Pendientes nuevos
+        document.getElementById('btnEnviarCorreo').addEventListener('click', async () => {
+            const pendientes = devData.filter(i => !i.enviado);
+            if (!pendientes.length) return alert("No hay equipos pendientes para informar.");
+            let cuerpo = "Estimado Fredy ,\n\nSe envían los siguientes equipos en devolución a bodega:\n\n";
+            pendientes.forEach((i, index) => {
+                const motivoLimpio = (i.motivo || '').replace(/[\r\n]+/g, ' ').trim();
+                cuerpo += `${index + 1}. Equipo: ${i.equipo}  |  S/N: ${i.serie}  |  Téc: ${i.tecnico}  |  Motivo: ${motivoLimpio}\n`;
+            });
+            cuerpo += "\nQuedo atento a la recepción.\nSaludos.";
+            
+            const correoPara = "famontecinos@uandes.cl"; 
+            const correoCC = "frubilar@uandes.cl;ex_jfuentes@uandes.cl;ex_sllanos@uandes.cl;ex_eaguirre@uandes.cl;ex_lmelendez@uandes.cl";
+            window.location.href = `mailto:${correoPara}?cc=${correoCC}&subject=${encodeURIComponent("Equipos Devueltos a Bodega")}&body=${encodeURIComponent(cuerpo)}`;
+            
+            if(confirm("¿El correo se abrió correctamente? Presiona Aceptar para marcar estos equipos como notificados.")) {
+                await fetch('/api/devoluciones/marcar-enviados', { method: 'POST' });
+                await cargarDatos();
+            }
+        });
+
+        cargarDatos();
+    </script>
+    <!-- SCRIPT MODO OSCURO -->
+    <script>
+        const btnDark = document.getElementById('btnDarkMode');
+        const htmlEl = document.documentElement;
+        
+        // 1. Revisar si el usuario ya tenía el modo oscuro guardado
+        if (localStorage.getItem('theme') === 'dark') {
+            htmlEl.setAttribute('data-bs-theme', 'dark');
+            btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+        }
+
+        // 2. Acción al hacer clic en el botón
+        btnDark.addEventListener('click', () => {
+            if (htmlEl.getAttribute('data-bs-theme') === 'dark') {
+                htmlEl.setAttribute('data-bs-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                btnDark.innerHTML = '<i class="bi bi-moon-stars"></i>';
+            } else {
+                htmlEl.setAttribute('data-bs-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+            }
+        });
+    </script>
+</body>
+</html>

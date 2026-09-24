@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario GLPI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>body { background-color: #000000; }</style>
+    <style>
+        /* Modo Claro por defecto */
+        html[data-bs-theme="light"] body { background-color: #f4f6f9; }
+        html[data-bs-theme="light"] .dashboard-fijo { background-color: #f4f6f9; z-index: 1020; }
+        
+        /* Ajustes automáticos para Modo Oscuro sin tener que reescribir todo tu código */
+        html[data-bs-theme="dark"] .bg-white { background-color: #212529 !important; border-color: #373b3e !important; }
+        html[data-bs-theme="dark"] .dashboard-fijo { background-color: #212529; z-index: 1020; }
+        html[data-bs-theme="dark"] .table-light { background-color: #2c3034 !important; color: #f8f9fa !important; border-color: #373b3e !important; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow">
+           <div class="container-fluid px-4">
+            <a class="navbar-brand" href="index.html"><i class="bi bi-hdd-network"></i> IT Dashboard</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="inventario.html">Inventario CUA</a>
+                <a class="nav-link" href="glpi.html">GLPI</a>
+                <a class="nav-link" href="instalaciones.html">Instalaciones</a>
+                <a class="nav-link" href="avaya.html">Fallas Avaya</a>
+                <a class="nav-link" href="avaya_nuevos.html">Stock Avaya</a>
+                <a class="nav-link" href="devoluciones.html">Devoluciones</a>
+                <a class="nav-link" href="recepciones.html">Recepciones</a>
+            </div>
+        </div>
+        <!-- Pega esto a la derecha de tus enlaces en el Navbar -->
+            <button class="btn btn-outline-light ms-auto d-flex align-items-center" id="btnDarkMode" title="Alternar Modo Oscuro">
+                <i class="bi bi-moon-stars"></i>
+            </button>
+    </nav>
+
+    <div class="container-fluid px-4">
+        <div class="row">
+            <!-- Columna Principal -->
+            <div class="col-lg-9">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-pc-display"></i> Equipos y Tickets desde GLPI</h6>
+                        
+                        <!-- Controles de Filtro Combinados -->
+                        <div class="d-flex gap-2">
+                            <!-- Lista desplegable dinámica para Entidades -->
+                            <select id="filtroEntidad" class="form-select form-select-sm" style="width: 170px;">
+                                <option value="">Todas las Entidades</option>
+                            </select>
+
+                            <!-- Lista desplegable dinámica para Estados -->
+                            <select id="filtroEstado" class="form-select form-select-sm" style="width: 160px;">
+                                <option value="">Todos los Estados</option>
+                            </select>
+                            
+                            <!-- Buscador de texto libre -->
+                            <div class="input-group input-group-sm" style="width: 220px;">
+                                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                <input type="text" id="buscadorGLPI" class="form-control" placeholder="Buscar ticket o técnico...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: calc(100vh - 200px); overflow-y: auto;">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light sticky-top" style="z-index: 10;">
+                                    <tr>
+                                        <th class="px-3">Nº Ticket</th>
+                                        <th>Entidad</th>
+                                        <th>Equipo / Título</th>
+                                        <th>Técnico / Asignado</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaGLPI"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Lateral -->
+            <div class="col-lg-3">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-cloud-upload"></i> Subir Exportación</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted">Sube tu archivo CSV exportado desde GLPI.</p>
+                        <form id="uploadGLPI">
+                            <div class="mb-3">
+                                <input type="file" id="csvFileGLPI" accept=".csv" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-secondary w-100"><i class="bi bi-upload"></i> Cargar GLPI</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card shadow-sm border-secondary">
+                    <div class="card-body">
+                        <h6 class="text-secondary mb-2"><i class="bi bi-info-circle"></i> Sobre esta vista</h6>
+                        <p class="small text-muted mb-0">Las listas de entidades y estados se generan automáticamente leyendo el archivo subido. Puedes combinarlas con el buscador de texto para filtros exactos.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let glpiData = [];
+
+        // Función para leer dinámicamente las columnas
+        function getVal(item, posibles) {
+            for (let prop in item) {
+                if (posibles.some(p => prop.toLowerCase().includes(p))) return item[prop];
+            }
+            return '';
+        }
+
+        // Poblar la lista desplegable con Entidades y Estados únicos
+        function cargarListasDesplegables() {
+            const selectEntidad = document.getElementById('filtroEntidad');
+            const selectEstado = document.getElementById('filtroEstado');
+            
+            selectEntidad.innerHTML = '<option value="">Todas las Entidades</option>';
+            selectEstado.innerHTML = '<option value="">Todos los Estados</option>';
+            
+            const entidadesUnicas = new Set();
+            const estadosUnicos = new Set();
+            
+            glpiData.forEach(item => {
+                const entidad = getVal(item, ['entidad', 'entity', 'departamento', 'área', 'ubicación']) || 'General';
+                const estado = getVal(item, ['estado', 'status', 'condición']) || 'Desconocido';
+                
+                entidadesUnicas.add(entidad.trim());
+                estadosUnicos.add(estado.trim());
+            });
+            
+            // Llenar select de Entidades
+            Array.from(entidadesUnicas).sort().forEach(entidad => {
+                const option = document.createElement('option');
+                option.value = entidad.toLowerCase();
+                option.textContent = entidad;
+                selectEntidad.appendChild(option);
+            });
+
+            // Llenar select de Estados
+            Array.from(estadosUnicos).sort().forEach(estado => {
+                const option = document.createElement('option');
+                option.value = estado.toLowerCase();
+                option.textContent = estado;
+                selectEstado.appendChild(option);
+            });
+        }
+
+        function renderizarGLPI(data) {
+            const tbody = document.getElementById('tablaGLPI');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron resultados</td></tr>';
+                return;
+            }
+
+            data.forEach(item => {
+                const ticket = getVal(item, ['ticket', 'id', 'n°', 'número', 'number']) || 'S/T';
+                const entidad = getVal(item, ['entidad', 'entity', 'departamento', 'área', 'ubicación']) || 'General';
+                const equipo = getVal(item, ['nombre', 'name', 'equipo', 'computador', 'título', 'title']) || 'N/A';
+                const tecnico = getVal(item, ['técnico', 'tecnico', 'asignado', 'responsable', 'usuario', 'contacto']) || 'Sin asignar';
+                const estado = getVal(item, ['estado', 'status', 'condición']) || 'Desconocido';
+
+                let badgeEstado = 'bg-secondary';
+                const estLower = estado.toLowerCase();
+                if (estLower.includes('nuevo') || estLower.includes('proceso') || estLower.includes('curso')) badgeEstado = 'bg-warning text-dark';
+                if (estLower.includes('resuelto') || estLower.includes('cerrado') || estLower.includes('ok')) badgeEstado = 'bg-success';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold px-3 text-primary">${ticket}</td>
+                    <td><span class="badge border border-secondary text-secondary">${entidad}</span></td>
+                    <td class="fw-bold">${equipo}</td>
+                    <td><i class="bi bi-person"></i> ${tecnico}</td>
+                    <td><span class="badge ${badgeEstado}">${estado}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Motor de filtrado unificado (Combina las dos listas desplegables y texto)
+        function aplicarFiltros() {
+            const texto = document.getElementById('buscadorGLPI').value.toLowerCase();
+            const entidadFiltro = document.getElementById('filtroEntidad').value;
+            const estadoFiltro = document.getElementById('filtroEstado').value;
+
+            const filtrados = glpiData.filter(item => {
+                const entidadItem = (getVal(item, ['entidad', 'entity', 'departamento', 'área', 'ubicación']) || 'General').toLowerCase().trim();
+                const estadoItem = (getVal(item, ['estado', 'status', 'condición']) || 'Desconocido').toLowerCase().trim();
+                
+                const cumpleTexto = JSON.stringify(item).toLowerCase().includes(texto);
+                const cumpleEntidad = (entidadFiltro === "") || (entidadItem === entidadFiltro);
+                const cumpleEstado = (estadoFiltro === "") || (estadoItem === estadoFiltro);
+                
+                return cumpleTexto && cumpleEntidad && cumpleEstado;
+            });
+
+            renderizarGLPI(filtrados);
+        }
+
+        async function cargarDatosGLPI() {
+            try {
+                const response = await fetch('/api/glpi');
+                glpiData = await response.json();
+                cargarListasDesplegables(); // Generamos ambas listas
+                renderizarGLPI(glpiData);
+            } catch (error) {
+                console.error("Error al cargar datos GLPI:", error);
+            }
+        }
+
+        // Eventos para aplicar los filtros inmediatamente al escribir o seleccionar
+        document.getElementById('buscadorGLPI').addEventListener('input', aplicarFiltros);
+        document.getElementById('filtroEntidad').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroEstado').addEventListener('change', aplicarFiltros);
+
+        // Subida de CSV
+        document.getElementById('uploadGLPI').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('archivo', document.getElementById('csvFileGLPI').files[0]);
+
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Cargando...';
+
+            try {
+                const response = await fetch('/api/upload-glpi', { method: 'POST', body: formData });
+                if (response.ok) {
+                    document.getElementById('csvFileGLPI').value = '';
+                    await cargarDatosGLPI();
+                } else {
+                    alert('Error al subir el CSV de GLPI');
+                }
+            } catch (error) {
+                alert('Error de conexión al subir el archivo');
+            }
+            
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-upload"></i> Cargar GLPI';
+        });
+
+        // Carga inicial
+        cargarDatosGLPI();
+    </script>
+    <!-- SCRIPT MODO OSCURO -->
+    <script>
+        const btnDark = document.getElementById('btnDarkMode');
+        const htmlEl = document.documentElement;
+        
+        // 1. Revisar si el usuario ya tenía el modo oscuro guardado
+        if (localStorage.getItem('theme') === 'dark') {
+            htmlEl.setAttribute('data-bs-theme', 'dark');
+            btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+        }
+
+        // 2. Acción al hacer clic en el botón
+        btnDark.addEventListener('click', () => {
+            if (htmlEl.getAttribute('data-bs-theme') === 'dark') {
+                htmlEl.setAttribute('data-bs-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                btnDark.innerHTML = '<i class="bi bi-moon-stars"></i>';
+            } else {
+                htmlEl.setAttribute('data-bs-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+            }
+        });
+    </script>
+</body>
+</html>

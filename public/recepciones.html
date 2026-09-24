@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recepciones desde Bodega</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>body { background-color: #000000; } .dashboard-fijo { background-color: #000000; z-index: 1020; }</style>
+ <style>
+        /* Modo Claro por defecto */
+        html[data-bs-theme="light"] body { background-color: #f4f6f9; }
+        html[data-bs-theme="light"] .dashboard-fijo { background-color: #f4f6f9; z-index: 1020; }
+        
+        /* Ajustes para Modo Oscuro (Corrigiendo el fondo blanco rebelde) */
+        html[data-bs-theme="dark"] body { background-color: #1a1d20; }
+        html[data-bs-theme="dark"] .dashboard-fijo { background-color: #1a1d20; border-color: #2c3034 !important; z-index: 1020; }
+        html[data-bs-theme="dark"] .bg-white { background-color: #212529 !important; border-color: #373b3e !important; color: #dee2e6; }
+        html[data-bs-theme="dark"] .text-secondary { color: #adb5bd !important; }
+        
+        /* Reparación específica para Tablas en Bootstrap 5 */
+        html[data-bs-theme="dark"] .table { 
+            --bs-table-bg: transparent; 
+            --bs-table-color: #dee2e6; 
+            --bs-table-border-color: #373b3e; 
+        }
+        /* Para las filas de equipos "Notificados" */
+        html[data-bs-theme="dark"] .table-light { 
+            --bs-table-bg: #2c3034 !important; 
+            --bs-table-color: #adb5bd !important; 
+        }
+        /* Efecto al pasar el mouse */
+        html[data-bs-theme="dark"] .table-hover > tbody > tr:hover > * { 
+            --bs-table-accent-bg: #373b3e; 
+            color: #fff; 
+        }
+    </style>
+</head>
+<body>
+   <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="index.html"><i class="bi bi-hdd-network"></i> IT Dashboard</a>
+            
+            <!-- Navegación Simplificada -->
+            <div class="navbar-nav me-auto align-items-center">
+                <a class="nav-link" href="index.html"><i class="bi bi-house-door"></i> Inicio</a>
+                
+                <!-- Separador visual y nombre de la página actual -->
+                <i class="bi bi-chevron-right text-secondary mx-2" style="font-size: 0.8rem;"></i>
+                <span  class="nav-link" href="devoluciones.html">Devoluciones</span>
+                <span class="nav-link" href="recepciones.html">Recepciones</span>
+                <span class="nav-link" href="avaya.html">Fallas Avaya</span>
+            </div>
+
+            <!-- Botones de Modo Oscuro y Salir -->
+            <div class="ms-auto d-flex">
+                <button class="btn btn-outline-light me-2" id="btnDarkMode" title="Alternar Modo Oscuro">
+                    <i class="bi bi-moon-stars"></i>
+                </button>
+                <button class="btn btn-outline-danger" onclick="fetch('/api/logout', {method:'POST'}).then(()=>window.location.href='/login.html')" title="Cerrar Sesión">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+        <!-- Pega esto a la derecha de tus enlaces en el Navbar -->
+            <button class="btn btn-outline-light ms-auto d-flex align-items-center" id="btnDarkMode" title="Alternar Modo Oscuro">
+                <i class="bi bi-moon-stars"></i>
+            </button>
+    </nav>
+
+    <div class="sticky-top dashboard-fijo shadow-sm border-bottom py-3 mb-4">
+        <div class="container-fluid px-4">
+            <div class="row align-items-center">
+                <div class="col-xl-4 col-md-6 mb-2 mb-xl-0">
+                    <div class="card bg-info text-dark shadow-sm border-0 h-100">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div><h6 class="mb-1 text-uppercase small">Total Recibidos</h6><h3 class="mb-0" id="kpiTotal">0</h3></div>
+                            <i class="bi bi-box-seam fs-1" style="opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid px-4">
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-clipboard-check"></i> Registrar Ingreso</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="formRecepciones">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Técnico que recibe</label>
+                                <input type="text" id="tecnicoInput" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Equipo (Modelo / Descripción)</label>
+                                <input type="text" id="equipoInput" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">S/N o Activo Fijo</label>
+                                <input type="text" id="serieInput" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Nº Ticket Asociado (Opcional)</label>
+                                <input type="text" id="ticketInput" class="form-control" placeholder="Ej: INC-1234">
+                            </div>
+                            <button type="submit" class="btn btn-info text-white w-100"><i class="bi bi-plus-circle"></i> Ingresar a IT</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-clock-history"></i> Histórico de Recepciones</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: calc(100vh - 350px); overflow-y: auto;">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th class="px-3">Fecha Recepción</th>
+                                        <th>Técnico</th>
+                                        <th>Equipo</th>
+                                        <th>Serie / AF</th>
+                                        <th>Ticket Asignado</th>
+                                        <th class="text-end px-3">Borrar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaRecepciones"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <script>
+        let recData = [];
+        let editandoId = null;
+
+        function renderizarTabla() {
+            document.getElementById('kpiTotal').innerText = recData.length;
+            const tbody = document.getElementById('tablaRecepciones');
+            tbody.innerHTML = '';
+            if (recData.length === 0) return tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Sin registros de recepción</td></tr>';
+
+            [...recData].reverse().forEach(item => {
+                const btnEditar = `<button onclick="prepararEdicion(${item.id})" class="btn btn-sm btn-outline-info border-0 me-1" title="Editar"><i class="bi bi-pencil"></i></button>`;
+                const btnEliminar = `<button onclick="eliminarRegistro(${item.id})" class="btn btn-sm btn-outline-danger border-0" title="Borrar"><i class="bi bi-trash3"></i></button>`;
+                
+                const tr = document.createElement('tr');
+                if(item.id === editandoId) tr.classList.add('table-warning');
+                
+                tr.innerHTML = `
+                    <td class="px-3 small">${item.fecha}</td>
+                    <td>${item.tecnico}</td>
+                    <td class="fw-bold text-info-emphasis">${item.equipo}</td>
+                    <td>${item.serie}</td>
+                    <td><span class="badge bg-secondary">${item.ticket || 'S/T'}</span></td>
+                    <td class="text-end px-3 text-nowrap">${btnEditar}${btnEliminar}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.prepararEdicion = function(id) {
+            const item = recData.find(i => i.id === id);
+            if(!item) return;
+            editandoId = id;
+            
+            document.getElementById('tecnicoInput').value = item.tecnico;
+            document.getElementById('equipoInput').value = item.equipo;
+            document.getElementById('serieInput').value = item.serie;
+            document.getElementById('ticketInput').value = item.ticket || '';
+            
+            const btnSubmit = document.querySelector('#formRecepciones button[type="submit"]');
+            btnSubmit.innerHTML = '<i class="bi bi-save"></i> Guardar Cambios';
+            btnSubmit.classList.replace('btn-info', 'btn-success');
+            
+            if(!document.getElementById('btnCancelarEdicion')) {
+                const btnCancel = document.createElement('button');
+                btnCancel.id = 'btnCancelarEdicion';
+                btnCancel.type = 'button';
+                btnCancel.className = 'btn btn-secondary w-100 mt-2';
+                btnCancel.innerHTML = '<i class="bi bi-x-circle"></i> Cancelar Edición';
+                btnCancel.onclick = cancelarEdicion;
+                document.getElementById('formRecepciones').appendChild(btnCancel);
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            renderizarTabla();
+        };
+
+        window.cancelarEdicion = function() {
+            editandoId = null;
+            document.getElementById('formRecepciones').reset();
+            const btnSubmit = document.querySelector('#formRecepciones button[type="submit"]');
+            btnSubmit.innerHTML = '<i class="bi bi-plus-circle"></i> Ingresar a IT';
+            btnSubmit.classList.replace('btn-success', 'btn-info');
+            const btnCancel = document.getElementById('btnCancelarEdicion');
+            if(btnCancel) btnCancel.remove();
+            renderizarTabla();
+        };
+
+        async function cargarDatos() {
+            const res = await fetch('/api/recepciones');
+            recData = await res.json();
+            renderizarTabla();
+        }
+
+        document.getElementById('formRecepciones').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                tecnico: document.getElementById('tecnicoInput').value,
+                equipo: document.getElementById('equipoInput').value,
+                serie: document.getElementById('serieInput').value,
+                ticket: document.getElementById('ticketInput').value
+            };
+            
+            if (editandoId) {
+                await fetch(`/api/recepciones/${editandoId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                cancelarEdicion();
+            } else {
+                await fetch('/api/recepciones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                document.getElementById('formRecepciones').reset();
+            }
+            await cargarDatos();
+        });
+
+        async function eliminarRegistro(id) {
+            if(confirm('¿Borrar registro?')) {
+                await fetch(`/api/recepciones/${id}`, { method: 'DELETE' });
+                if(editandoId === id) cancelarEdicion();
+                await cargarDatos();
+            }
+        }
+
+        cargarDatos();
+    </script>
+    <!-- SCRIPT MODO OSCURO -->
+    <script>
+        const btnDark = document.getElementById('btnDarkMode');
+        const htmlEl = document.documentElement;
+        
+        // 1. Revisar si el usuario ya tenía el modo oscuro guardado
+        if (localStorage.getItem('theme') === 'dark') {
+            htmlEl.setAttribute('data-bs-theme', 'dark');
+            btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+        }
+
+        // 2. Acción al hacer clic en el botón
+        btnDark.addEventListener('click', () => {
+            if (htmlEl.getAttribute('data-bs-theme') === 'dark') {
+                htmlEl.setAttribute('data-bs-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                btnDark.innerHTML = '<i class="bi bi-moon-stars"></i>';
+            } else {
+                htmlEl.setAttribute('data-bs-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+            }
+        });
+    </script>
+</body>
+</html>

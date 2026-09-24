@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        html[data-bs-theme="light"] body { background-color: #f4f6f9; }
+        html[data-bs-theme="dark"] .bg-white { background-color: #212529 !important; border-color: #373b3e !important; }
+        html[data-bs-theme="dark"] .table-light { background-color: #2c3034 !important; color: #f8f9fa !important; border-color: #373b3e !important; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="#"><i class="bi bi-shield-lock"></i> Admin Dashboard</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="index.html"><i class="bi bi-arrow-left"></i> Volver a Inventarios</a>
+                <a class="nav-link active fw-bold" href="usuarios.html">Gestión de Usuarios</a>
+            </div>
+            <div class="ms-auto d-flex">
+                <button class="btn btn-outline-light me-2" id="btnDarkMode" title="Alternar Modo Oscuro"><i class="bi bi-moon-stars"></i></button>
+                <button class="btn btn-outline-danger" onclick="fetch('/api/logout', {method:'POST'}).then(()=>window.location.href='/login.html')" title="Cerrar Sesión"><i class="bi bi-box-arrow-right"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container px-4">
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-person-plus"></i> Crear Nuevo Usuario</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="formUsuarios">
+                            <div class="mb-3">
+                                <label class="form-label small">Nombre de Usuario</label>
+                                <input type="text" id="userInput" class="form-control" required placeholder="Ej: rrivera">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">Contraseña</label>
+                                <input type="password" id="passInput" class="form-control" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label small">Rol en el sistema</label>
+                                <select id="rolInput" class="form-select">
+                                    <option value="tecnico">Técnico (Solo uso normal)</option>
+                                    <option value="admin">Administrador (Control total)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 fw-bold"><i class="bi bi-person-check"></i> Registrar Usuario</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-people"></i> Usuarios Activos</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="px-3">Usuario</th>
+                                        <th>Rol</th>
+                                        <th class="text-end px-3">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaUsuarios"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT DE MODOS Y FUNCIONALIDAD -->
+ <!-- SCRIPT DE MODOS Y FUNCIONALIDAD -->
+    <script>
+        // Modo Oscuro
+        const btnDark = document.getElementById('btnDarkMode');
+        const htmlEl = document.documentElement;
+        if (localStorage.getItem('theme') === 'dark') { htmlEl.setAttribute('data-bs-theme', 'dark'); btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>'; }
+        btnDark.addEventListener('click', () => {
+            if (htmlEl.getAttribute('data-bs-theme') === 'dark') {
+                htmlEl.setAttribute('data-bs-theme', 'light'); localStorage.setItem('theme', 'light'); btnDark.innerHTML = '<i class="bi bi-moon-stars"></i>';
+            } else {
+                htmlEl.setAttribute('data-bs-theme', 'dark'); localStorage.setItem('theme', 'dark'); btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+            }
+        });
+
+        // Lógica de Usuarios
+        let usuariosData = [];
+        let editandoId = null;
+
+        async function cargarUsuarios() {
+            const res = await fetch('/api/usuarios');
+            if(res.status === 403) return window.location.href = '/index.html'; 
+            usuariosData = await res.json();
+            const tbody = document.getElementById('tablaUsuarios');
+            tbody.innerHTML = '';
+            
+            usuariosData.forEach(u => {
+                const badge = u.rol === 'admin' ? '<span class="badge bg-danger">Administrador</span>' : '<span class="badge bg-secondary">Técnico</span>';
+                
+                // Botones de acción
+                const btnEditar = `<button onclick="prepararEdicion(${u.id})" class="btn btn-sm btn-outline-primary border-0 me-1" title="Editar Usuario"><i class="bi bi-pencil"></i></button>`;
+                const btnEliminar = `<button onclick="eliminarUsuario(${u.id})" class="btn btn-sm btn-outline-danger border-0" title="Borrar Cuenta"><i class="bi bi-trash3"></i></button>`;
+
+                const tr = document.createElement('tr');
+                if(u.id === editandoId) tr.classList.add('table-warning'); // Resaltar si se está editando
+
+                tr.innerHTML = `
+                    <td class="px-3 fw-bold text-primary"><i class="bi bi-person-circle text-muted me-2"></i>${u.user}</td>
+                    <td>${badge}</td>
+                    <td class="text-end px-3 text-nowrap">
+                        ${btnEditar}${btnEliminar}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.prepararEdicion = function(id) {
+            const item = usuariosData.find(u => u.id === id);
+            if(!item) return;
+            editandoId = id;
+            
+            document.getElementById('userInput').value = item.user;
+            document.getElementById('rolInput').value = item.rol;
+            
+            // Ajustamos el campo de contraseña
+            const passInput = document.getElementById('passInput');
+            passInput.value = '';
+            passInput.removeAttribute('required');
+            passInput.placeholder = 'Déjalo en blanco para no cambiarla';
+            
+            // Cambiamos el botón
+            const btnSubmit = document.querySelector('#formUsuarios button[type="submit"]');
+            btnSubmit.innerHTML = '<i class="bi bi-save"></i> Guardar Cambios';
+            btnSubmit.classList.replace('btn-primary', 'btn-success');
+            
+            // Botón cancelar
+            if(!document.getElementById('btnCancelarEdicion')) {
+                const btnCancel = document.createElement('button');
+                btnCancel.id = 'btnCancelarEdicion';
+                btnCancel.type = 'button';
+                btnCancel.className = 'btn btn-secondary w-100 mt-2 fw-bold';
+                btnCancel.innerHTML = '<i class="bi bi-x-circle"></i> Cancelar Edición';
+                btnCancel.onclick = cancelarEdicion;
+                document.getElementById('formUsuarios').appendChild(btnCancel);
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            cargarUsuarios();
+        };
+
+        window.cancelarEdicion = function() {
+            editandoId = null;
+            document.getElementById('formUsuarios').reset();
+            
+            // Restauramos el campo de contraseña
+            const passInput = document.getElementById('passInput');
+            passInput.setAttribute('required', 'true');
+            passInput.placeholder = '';
+            
+            // Restauramos el botón
+            const btnSubmit = document.querySelector('#formUsuarios button[type="submit"]');
+            btnSubmit.innerHTML = '<i class="bi bi-person-check"></i> Registrar Usuario';
+            btnSubmit.classList.replace('btn-success', 'btn-primary');
+            
+            const btnCancel = document.getElementById('btnCancelarEdicion');
+            if(btnCancel) btnCancel.remove();
+            cargarUsuarios();
+        };
+
+        document.getElementById('formUsuarios').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = document.getElementById('userInput').value;
+            const pass = document.getElementById('passInput').value;
+            const rol = document.getElementById('rolInput').value;
+            
+            const url = editandoId ? `/api/usuarios/${editandoId}` : '/api/usuarios';
+            const method = editandoId ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user, pass, rol })
+            });
+
+            if (res.ok) {
+                if (editandoId) cancelarEdicion();
+                else document.getElementById('formUsuarios').reset();
+                cargarUsuarios();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Error al procesar el usuario");
+            }
+        });
+
+        window.eliminarUsuario = async function(id) {
+            if(confirm('¿Estás seguro de eliminar este usuario del sistema?')) {
+                const res = await fetch(`/api/usuarios/${id}`, { method: 'DELETE' });
+                if(res.ok) {
+                    if (editandoId === id) cancelarEdicion();
+                    cargarUsuarios();
+                }
+                else {
+                    const err = await res.json();
+                    alert(err.error);
+                }
+            }
+        };
+
+        cargarUsuarios();
+    </script>   
+</body>
+</html>

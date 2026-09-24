@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fallas Teléfonos Avaya</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Modo Claro por defecto */
+        html[data-bs-theme="light"] body { background-color: #f4f6f9; }
+        html[data-bs-theme="light"] .dashboard-fijo { background-color: #f4f6f9; z-index: 1020; }
+        
+        /* Ajustes para Modo Oscuro (Corrigiendo el fondo blanco rebelde) */
+        html[data-bs-theme="dark"] body { background-color: #1a1d20; }
+        html[data-bs-theme="dark"] .dashboard-fijo { background-color: #1a1d20; border-color: #2c3034 !important; z-index: 1020; }
+        html[data-bs-theme="dark"] .bg-white { background-color: #212529 !important; border-color: #373b3e !important; color: #dee2e6; }
+        html[data-bs-theme="dark"] .text-secondary { color: #adb5bd !important; }
+        
+        /* Reparación específica para Tablas en Bootstrap 5 */
+        html[data-bs-theme="dark"] .table { 
+            --bs-table-bg: transparent; 
+            --bs-table-color: #dee2e6; 
+            --bs-table-border-color: #373b3e; 
+        }
+        /* Para las filas de equipos "Notificados" */
+        html[data-bs-theme="dark"] .table-light { 
+            --bs-table-bg: #2c3034 !important; 
+            --bs-table-color: #adb5bd !important; 
+        }
+        /* Efecto al pasar el mouse */
+        html[data-bs-theme="dark"] .table-hover > tbody > tr:hover > * { 
+            --bs-table-accent-bg: #373b3e; 
+            color: #fff; 
+        }
+    </style>
+</head>
+<body>
+   <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="index.html"><i class="bi bi-hdd-network"></i> IT Dashboard</a>
+            
+            <!-- Navegación Simplificada -->
+            <div class="navbar-nav me-auto align-items-center">
+                <a class="nav-link" href="index.html"><i class="bi bi-house-door"></i> Inicio</a>
+                
+                <!-- Separador visual y nombre de la página actual -->
+                <i class="bi bi-chevron-right text-secondary mx-2" style="font-size: 0.8rem;"></i>
+                <span  class="nav-link" href="devoluciones.html">Devoluciones</span>
+                <span class="nav-link" href="recepciones.html">Recepciones</span>
+                <span class="nav-link" href="avaya.html">Fallas Avaya</span>
+            </div>
+        <!-- Pega esto a la derecha de tus enlaces en el Navbar -->
+            <button class="btn btn-outline-light ms-auto d-flex align-items-center" id="btnDarkMode" title="Alternar Modo Oscuro">
+                <i class="bi bi-moon-stars"></i>
+            </button>
+    </nav>
+
+    <!-- Dashboard Sticky (Fijo al hacer scroll) -->
+    <div class="sticky-top dashboard-fijo shadow-sm border-bottom py-3 mb-4">
+        <div class="container-fluid px-4">
+            <div class="row align-items-center">
+                <!-- KPI 1 -->
+                <div class="col-xl-3 col-md-6 mb-2 mb-xl-0">
+                    <div class="card bg-primary text-white shadow-sm border-0 h-100">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 text-uppercase small">Total Fallas</h6>
+                                <h3 class="mb-0" id="kpiTotal">0</h3>
+                            </div>
+                            <i class="bi bi-telephone text-white-50 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+                <!-- KPI 2 -->
+                <div class="col-xl-3 col-md-6 mb-2 mb-xl-0">
+                    <div class="card bg-warning text-dark shadow-sm border-0 h-100">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 text-uppercase small">Pendientes Envío</h6>
+                                <h3 class="mb-0" id="kpiPendientes">0</h3>
+                            </div>
+                            <i class="bi bi-hourglass-split text-dark-50 fs-1" style="opacity: 0.5;"></i>
+                        </div>
+                    </div>
+                </div>
+                <!-- KPI 3 -->
+                <div class="col-xl-3 col-md-6 mb-2 mb-xl-0">
+                    <div class="card bg-success text-white shadow-sm border-0 h-100">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 text-uppercase small">Enviados a Garantía</h6>
+                                <h3 class="mb-0" id="kpiEnviados">0</h3>
+                            </div>
+                            <i class="bi bi-check2-circle text-white-50 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+                <!-- Gráfico Compacto -->
+                <div class="col-xl-3 col-md-6 d-flex justify-content-center align-items-center">
+                    <div style="height: 70px; width: 70px;">
+                        <canvas id="chartAvaya"></canvas>
+                    </div>
+                    <div class="ms-3 small text-muted">
+                        <div><span class="d-inline-block rounded-circle me-1" style="width:10px;height:10px;background-color:#ffc107;"></span> Pendientes</div>
+                        <div><span class="d-inline-block rounded-circle me-1" style="width:10px;height:10px;background-color:#198754;"></span> Enviados</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="container-fluid px-4">
+        <div class="row">
+            <!-- Columna del Formulario -->
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-telephone-x"></i> Registrar Falla</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="formAvaya">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Técnico a cargo</label>
+                                <input type="text" id="tecnicoInput" class="form-control" placeholder="Ej: Rolando Rivera" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">MAC del Equipo</label>
+                                <input type="text" id="macInput" class="form-control" placeholder="Ej: 00:1B:44:11:3A:B7" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Descripción (Máx 100 caracteres)</label>
+                                <textarea id="fallaInput" class="form-control" rows="3" maxlength="100" style="resize: none;" placeholder="Ej: Pantalla en blanco..." required></textarea>
+                                <div class="form-text text-end" id="charCount">0/100</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-circle"></i> Agregar al Registro</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mt-4 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-primary mb-3">Generar Reporte</h6>
+                        <button id="btnEnviarCorreo" class="btn btn-outline-primary w-100"><i class="bi bi-envelope-paper"></i> Enviar Pendientes</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna de la Tabla -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-clock-history"></i> Histórico</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: calc(100vh - 350px); overflow-y: auto;">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light sticky-top" style="z-index: 10;">
+                                    <tr>
+                                        <th class="px-3">Fecha</th>
+                                        <th>Técnico</th>
+                                        <th>MAC</th>
+                                        <th>Falla</th>
+                                        <th>Estado</th>
+                                        <th class="text-end px-3">Borrar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaAvaya"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+ <script>
+        let avayaData = [];
+        let glpiData = [];
+        let graficoAvaya = null;
+        let editandoId = null; // Variable para saber si estamos editando
+
+        fetch('/api/glpi').then(r => r.json()).then(data => glpiData = data);
+
+        function getVal(item, posibles) {
+            for (let prop in item) if (posibles.some(p => prop.toLowerCase().includes(p))) return item[prop];
+            return '';
+        }
+
+        document.getElementById('btnBuscarGLPI').addEventListener('click', () => {
+            const mac = document.getElementById('macInput').value.trim().toLowerCase();
+            const resDiv = document.getElementById('glpiResult');
+            if (!mac) {
+                resDiv.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle"></i> Escribe una MAC primero.</span>';
+                resDiv.style.display = 'block';
+                return;
+            }
+            const match = glpiData.find(item => Object.values(item).some(val => String(val).toLowerCase().includes(mac)));
+            if (match) {
+                const usuario = getVal(match, ['usuario', 'user', 'técnico', 'contacto', 'asignado']) || 'Sin asignar';
+                const ubicacion = getVal(match, ['ubicación', 'lugar', 'location', 'localización']) || 'Desconocida';
+                resDiv.innerHTML = `<span class="text-success"><i class="bi bi-check-circle"></i> <strong>Asignado en GLPI:</strong><br>${usuario} (${ubicacion})</span>`;
+            } else resDiv.innerHTML = `<span class="text-warning text-dark"><i class="bi bi-exclamation-triangle"></i> No hay registros de esta MAC en GLPI.</span>`;
+            resDiv.style.display = 'block';
+        });
+
+        document.getElementById('fallaInput').addEventListener('input', function() {
+            document.getElementById('charCount').innerText = `${this.value.length}/100`;
+        });
+
+        function actualizarDashboard() {
+            const total = avayaData.length;
+            const enviados = avayaData.filter(i => i.enviado).length;
+            const pendientes = total - enviados;
+            document.getElementById('kpiTotal').innerText = total;
+            document.getElementById('kpiEnviados').innerText = enviados;
+            document.getElementById('kpiPendientes').innerText = pendientes;
+            const ctx = document.getElementById('chartAvaya').getContext('2d');
+            if(graficoAvaya) graficoAvaya.destroy();
+            graficoAvaya = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: ['Pendientes', 'Enviados'], datasets: [{ data: [pendientes, enviados], backgroundColor: ['#ffc107', '#198754'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '70%' }
+            });
+        }
+
+        function renderizarTabla() {
+            const tbody = document.getElementById('tablaAvaya');
+            tbody.innerHTML = '';
+            if (avayaData.length === 0) return tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">Sin registros</td></tr>';
+
+            [...avayaData].reverse().forEach(item => {
+                const badge = item.enviado ? '<span class="badge bg-success">Enviado</span>' : '<span class="badge bg-warning text-dark">Pendiente</span>';
+                
+                // Botones de acción (Editar y Borrar)
+                const btnEditar = `<button onclick="prepararEdicion(${item.id})" class="btn btn-sm btn-outline-primary border-0 me-1" title="Editar"><i class="bi bi-pencil"></i></button>`;
+                const btnEliminar = `<button onclick="eliminarRegistro(${item.id})" class="btn btn-sm btn-outline-danger border-0" title="Borrar"><i class="bi bi-trash3"></i></button>`;
+                
+                const tr = document.createElement('tr');
+                if(item.enviado) tr.classList.add('table-light', 'text-muted');
+                if(item.id === editandoId) tr.classList.add('table-warning'); // Resalta la fila que se está editando
+                
+                tr.innerHTML = `
+                    <td class="px-3 small">${item.fecha}</td>
+                    <td>${item.tecnico}</td>
+                    <td><span class="badge bg-secondary">${item.ticket || 'S/T'}</span></td>
+                    <td class="fw-bold">${item.mac}</td>
+                    <td style="max-width: 150px; word-wrap: break-word;">${item.falla}</td>
+                    <td>${badge}</td>
+                    <td class="text-end px-3 text-nowrap">${btnEditar}${btnEliminar}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.prepararEdicion = function(id) {
+            const item = avayaData.find(i => i.id === id);
+            if(!item) return;
+            editandoId = id;
+            
+            document.getElementById('macInput').value = item.mac;
+            document.getElementById('fallaInput').value = item.falla;
+            document.getElementById('tecnicoInput').value = item.tecnico;
+            document.getElementById('ticketInput').value = item.ticket || '';
+            document.getElementById('charCount').innerText = `${item.falla.length}/100`;
+            
+            const btnSubmit = document.querySelector('#formAvaya button[type="submit"]');
+            btnSubmit.innerHTML = '<i class="bi bi-save"></i> Guardar Cambios';
+            btnSubmit.classList.replace('btn-primary', 'btn-success');
+            
+            if(!document.getElementById('btnCancelarEdicion')) {
+                const btnCancel = document.createElement('button');
+                btnCancel.id = 'btnCancelarEdicion';
+                btnCancel.type = 'button';
+                btnCancel.className = 'btn btn-secondary w-100 mt-2';
+                btnCancel.innerHTML = '<i class="bi bi-x-circle"></i> Cancelar Edición';
+                btnCancel.onclick = cancelarEdicion;
+                document.getElementById('formAvaya').appendChild(btnCancel);
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            renderizarTabla();
+        };
+
+        window.cancelarEdicion = function() {
+            editandoId = null;
+            document.getElementById('formAvaya').reset();
+            document.getElementById('charCount').innerText = '0/100';
+            
+            const btnSubmit = document.querySelector('#formAvaya button[type="submit"]');
+            btnSubmit.innerHTML = '<i class="bi bi-plus-circle"></i> Agregar al Registro';
+            btnSubmit.classList.replace('btn-success', 'btn-primary');
+            
+            const btnCancel = document.getElementById('btnCancelarEdicion');
+            if(btnCancel) btnCancel.remove();
+            renderizarTabla();
+        };
+
+        async function cargarDatos() {
+            const res = await fetch('/api/avaya');
+            avayaData = await res.json();
+            actualizarDashboard();
+            renderizarTabla();
+        }
+
+        document.getElementById('formAvaya').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                mac: document.getElementById('macInput').value,
+                falla: document.getElementById('fallaInput').value,
+                tecnico: document.getElementById('tecnicoInput').value,
+                ticket: document.getElementById('ticketInput').value
+            };
+            
+            if (editandoId) {
+                await fetch(`/api/avaya/${editandoId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                cancelarEdicion();
+            } else {
+                await fetch('/api/avaya', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                document.getElementById('formAvaya').reset();
+                document.getElementById('charCount').innerText = '0/100';
+            }
+            document.getElementById('glpiResult').style.display = 'none';
+            await cargarDatos();
+        });
+
+        async function eliminarRegistro(id) {
+            if(confirm('¿Borrar registro?')) {
+                await fetch(`/api/avaya/${id}`, { method: 'DELETE' });
+                if(editandoId === id) cancelarEdicion();
+                await cargarDatos();
+            }
+        }
+
+        document.getElementById('btnEnviarCorreo').addEventListener('click', async () => {
+            const pendientes = avayaData.filter(i => !i.enviado);
+            if (!pendientes.length) return alert("Nada que enviar.");
+            let htmlTabla = `<p style="font-family: Arial, sans-serif; font-size: 14px;">Teléfonos con fallas:</p>
+                <table style="border-collapse: collapse; width: 100%; max-width: 800px; font-family: Arial, sans-serif; font-size: 14px; text-align: left;">
+                    <thead><tr style="background-color: #f4f6f9; border-bottom: 2px solid #ddd;">
+                        <th style="padding: 10px; border: 1px solid #eee;">Fecha</th>
+                        <th style="padding: 10px; border: 1px solid #eee;">Técnico</th>
+                        <th style="padding: 10px; border: 1px solid #eee;">MAC</th>
+                        <th style="padding: 10px; border: 1px solid #eee;">Falla</th>
+                    </tr></thead><tbody>`;
+            pendientes.forEach((i, index) => {
+                const bg = index % 2 === 0 ? '#ffffff' : '#fbfbfb';
+                htmlTabla += `<tr style="background-color: ${bg};"><td style="padding: 10px; border: 1px solid #eee;">${i.fecha}</td><td style="padding: 10px; border: 1px solid #eee;">${i.tecnico || 'N/A'}</td><td style="padding: 10px; border: 1px solid #eee; font-weight: bold;">${i.mac}</td><td style="padding: 10px; border: 1px solid #eee;">${i.falla}</td></tr>`;
+            });
+            htmlTabla += `</tbody></table>`;
+
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = htmlTabla;
+            tempDiv.style.position = "absolute"; tempDiv.style.left = "-9999px"; 
+            document.body.appendChild(tempDiv);
+            const range = document.createRange(); range.selectNodeContents(tempDiv);
+            const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+            try { document.execCommand('copy'); alert("¡Tabla copiada!\n\nSe abrirá tu correo. Presiona 'Pegar' (o Ctrl+V) en el cuerpo del mensaje."); } catch (err) { }
+            selection.removeAllRanges(); document.body.removeChild(tempDiv);
+            
+            const correoPara = "redesti@uandes.cl";
+            const correoCC = "frubilar@uandes.cl;famontecinos@uandes.cl;ex_jfuentes@uandes.cl;ex_sllanos@uandes.cl;ex_eaguirre@uandes.cl;ex_lmelendez@uandes.cl"; 
+            window.location.href = `mailto:${correoPara}?cc=${correoCC}&subject=${encodeURIComponent("Fallas Avaya")}`;
+            
+            setTimeout(async () => {
+                if(confirm("¿Se abrió el correo? Presiona Aceptar para marcar como enviados.")) {
+                    await fetch('/api/avaya/marcar-enviados', { method: 'POST' });
+                    await cargarDatos();
+                }
+            }, 1500);
+        });
+
+        cargarDatos();
+    </script>
+    <!-- SCRIPT MODO OSCURO -->
+    <script>
+        const btnDark = document.getElementById('btnDarkMode');
+        const htmlEl = document.documentElement;
+        
+        // 1. Revisar si el usuario ya tenía el modo oscuro guardado
+        if (localStorage.getItem('theme') === 'dark') {
+            htmlEl.setAttribute('data-bs-theme', 'dark');
+            btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+        }
+
+        // 2. Acción al hacer clic en el botón
+        btnDark.addEventListener('click', () => {
+            if (htmlEl.getAttribute('data-bs-theme') === 'dark') {
+                htmlEl.setAttribute('data-bs-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                btnDark.innerHTML = '<i class="bi bi-moon-stars"></i>';
+            } else {
+                htmlEl.setAttribute('data-bs-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Teléfonos Avaya</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>body { background-color: #000000; }</style>
+    <style>
+        /* Modo Claro por defecto */
+        html[data-bs-theme="light"] body { background-color: #f4f6f9; }
+        html[data-bs-theme="light"] .dashboard-fijo { background-color: #f4f6f9; z-index: 1020; }
+        
+        /* Ajustes automáticos para Modo Oscuro sin tener que reescribir todo tu código */
+        html[data-bs-theme="dark"] .bg-white { background-color: #212529 !important; border-color: #373b3e !important; }
+        html[data-bs-theme="dark"] .dashboard-fijo { background-color: #212529; z-index: 1020; }
+        html[data-bs-theme="dark"] .table-light { background-color: #2c3034 !important; color: #f8f9fa !important; border-color: #373b3e !important; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow">
+      <div class="container-fluid px-4">
+            <a class="navbar-brand" href="index.html"><i class="bi bi-hdd-network"></i> IT Dashboard</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="inventario.html">Inventario CUA</a>
+                <a class="nav-link" href="glpi.html">GLPI</a>
+                <a class="nav-link" href="instalaciones.html">Instalaciones</a>
+                <a class="nav-link" href="avaya.html">Fallas Avaya</a>
+                <a class="nav-link" href="avaya_nuevos.html">Stock Avaya</a>
+                <a class="nav-link" href="devoluciones.html">Devoluciones</a>
+                <a class="nav-link" href="recepciones.html">Recepciones</a>
+            </div>
+        </div>
+        <!-- Pega esto a la derecha de tus enlaces en el Navbar -->
+            <button class="btn btn-outline-light ms-auto d-flex align-items-center" id="btnDarkMode" title="Alternar Modo Oscuro">
+                <i class="bi bi-moon-stars"></i>
+            </button>
+    </nav>
+
+    <div class="container-fluid px-4">
+        <div class="row">
+            <!-- Formulario -->
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-telephone-plus"></i> Ingresar / Asignar Teléfono Nuevo</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="formNuevos">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">MAC del Equipo</label>
+                                <input type="text" id="macInput" class="form-control" placeholder="Ej: 00:1B:44:11:3A:B7" required>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="checkUtilizado">
+                                <label class="form-check-label small" for="checkUtilizado">¿El equipo fue utilizado/asignado?</label>
+                            </div>
+
+                            <!-- Campos que se muestran solo si está utilizado -->
+                            <div id="camposAsignacion" style="display: none;">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small">Técnico que lo utilizó</label>
+                                    <input type="text" id="tecnicoInput" class="form-control" placeholder="Nombre del técnico">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small">Nº de Ticket Asociado</label>
+                                    <input type="text" id="ticketInput" class="form-control" placeholder="Ej: INC-123456">
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-save"></i> Guardar Equipo</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Stock -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-boxes"></i> Inventario de Stock Avaya</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th class="px-3">Fecha de Ingreso</th>
+                                        <th>Dirección MAC</th>
+                                        <th>Estado</th>
+                                        <th>Técnico</th>
+                                        <th>Ticket</th>
+                                        <th class="text-end px-3">Borrar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaNuevos"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stockData = [];
+
+        // Mostrar/ocultar campos de técnico y ticket según el checkbox
+        document.getElementById('checkUtilizado').addEventListener('change', function() {
+            document.getElementById('camposAsignacion').style.display = this.checked ? 'block' : 'none';
+        });
+
+        function renderizarTabla() {
+            const tbody = document.getElementById('tablaNuevos');
+            tbody.innerHTML = '';
+            
+            if (stockData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No hay stock registrado</td></tr>';
+                return;
+            }
+
+            [...stockData].reverse().forEach(item => {
+                const badge = item.utilizado 
+                    ? '<span class="badge bg-primary">Utilizado</span>' 
+                    : '<span class="badge bg-success">En Bodega</span>';
+                
+                const btnEliminar = `<button onclick="eliminarRegistro(${item.id})" class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash3"></i></button>`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-3 small">${item.fecha}</td>
+                    <td class="fw-bold fw-mono">${item.mac}</td>
+                    <td>${badge}</td>
+                    <td>${item.utilizado ? item.tecnico : '-'}</td>
+                    <td>${item.utilizado ? `<span class="badge bg-secondary">${item.ticket}</span>` : '-'}</td>
+                    <td class="text-end px-3">${btnEliminar}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function cargarDatos() {
+            const res = await fetch('/api/avaya-nuevos');
+            stockData = await res.json();
+            renderizarTabla();
+        }
+
+        document.getElementById('formNuevos').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mac = document.getElementById('macInput').value;
+            const utilizado = document.getElementById('checkUtilizado').checked;
+            const tecnico = document.getElementById('tecnicoInput').value;
+            const ticket = document.getElementById('ticketInput').value;
+
+            if (utilizado && (!tecnico || !ticket)) {
+                return alert("Si el equipo fue utilizado, debes ingresar el Técnico y el Ticket.");
+            }
+
+            const res = await fetch('/api/avaya-nuevos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mac, utilizado, tecnico, ticket })
+            });
+
+            if (res.ok) {
+                document.getElementById('formNuevos').reset();
+                document.getElementById('camposAsignacion').style.display = 'none';
+                await cargarDatos();
+            }
+        });
+
+        async function eliminarRegistro(id) {
+            if(confirm('¿Estás seguro de que deseas borrar este registro de stock?')) {
+                await fetch(`/api/avaya-nuevos/${id}`, { method: 'DELETE' });
+                await cargarDatos();
+            }
+        }
+
+        cargarDatos();
+    </script>
+    <!-- SCRIPT MODO OSCURO -->
+    <script>
+        const btnDark = document.getElementById('btnDarkMode');
+        const htmlEl = document.documentElement;
+        
+        // 1. Revisar si el usuario ya tenía el modo oscuro guardado
+        if (localStorage.getItem('theme') === 'dark') {
+            htmlEl.setAttribute('data-bs-theme', 'dark');
+            btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+        }
+
+        // 2. Acción al hacer clic en el botón
+        btnDark.addEventListener('click', () => {
+            if (htmlEl.getAttribute('data-bs-theme') === 'dark') {
+                htmlEl.setAttribute('data-bs-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                btnDark.innerHTML = '<i class="bi bi-moon-stars"></i>';
+            } else {
+                htmlEl.setAttribute('data-bs-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+            }
+        });
+    </script>
+</body>
+</html>

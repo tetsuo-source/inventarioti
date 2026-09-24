@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipos a Instalar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #000000; }
+        .dashboard-fijo { background-color: #000000; z-index: 1020; }
+    </style>
+   <style>
+        /* Modo Claro por defecto */
+        html[data-bs-theme="light"] body { background-color: #f4f6f9; }
+        html[data-bs-theme="light"] .dashboard-fijo { background-color: #f4f6f9; z-index: 1020; }
+        
+        /* Ajustes para Modo Oscuro (Corrigiendo el fondo blanco rebelde) */
+        html[data-bs-theme="dark"] body { background-color: #1a1d20; }
+        html[data-bs-theme="dark"] .dashboard-fijo { background-color: #1a1d20; border-color: #2c3034 !important; z-index: 1020; }
+        html[data-bs-theme="dark"] .bg-white { background-color: #212529 !important; border-color: #373b3e !important; color: #dee2e6; }
+        html[data-bs-theme="dark"] .text-secondary { color: #adb5bd !important; }
+        
+        /* Reparación específica para Tablas en Bootstrap 5 */
+        html[data-bs-theme="dark"] .table { 
+            --bs-table-bg: transparent; 
+            --bs-table-color: #dee2e6; 
+            --bs-table-border-color: #373b3e; 
+        }
+        /* Para las filas de equipos "Notificados" */
+        html[data-bs-theme="dark"] .table-light { 
+            --bs-table-bg: #2c3034 !important; 
+            --bs-table-color: #adb5bd !important; 
+        }
+        /* Efecto al pasar el mouse */
+        html[data-bs-theme="dark"] .table-hover > tbody > tr:hover > * { 
+            --bs-table-accent-bg: #373b3e; 
+            color: #fff; 
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-0 shadow">
+       <div class="container-fluid px-4">
+            <a class="navbar-brand" href="index.html"><i class="bi bi-hdd-network"></i> IT Dashboard</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="inventario.html">Inventario CUA</a>
+                <a class="nav-link" href="glpi.html">GLPI</a>
+                <a class="nav-link" href="instalaciones.html">Instalaciones</a>
+                <a class="nav-link" href="avaya.html">Fallas Avaya</a>
+                <a class="nav-link" href="avaya_nuevos.html">Stock Avaya</a>
+                <a class="nav-link" href="devoluciones.html">Devoluciones</a>
+                <a class="nav-link" href="recepciones.html">Recepciones</a>
+            </div>
+        </div>
+        <!-- Pega esto a la derecha de tus enlaces en el Navbar -->
+            <button class="btn btn-outline-light ms-auto d-flex align-items-center" id="btnDarkMode" title="Alternar Modo Oscuro">
+                <i class="bi bi-moon-stars"></i>
+            </button>
+    </nav>
+
+    <!-- Dashboard Sticky (Fijo al hacer scroll) -->
+    <div class="sticky-top dashboard-fijo shadow-sm border-bottom py-3 mb-4">
+        <div class="container-fluid px-4">
+            <div class="row align-items-center">
+                <!-- KPI 1 -->
+                <div class="col-xl-4 col-md-4 mb-2 mb-xl-0">
+                    <div class="card bg-primary text-white shadow-sm border-0 h-100">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 text-uppercase small">Total Tickets</h6>
+                                <h3 class="mb-0" id="kpiTotal">0</h3>
+                            </div>
+                            <i class="bi bi-ticket-detailed text-white-50 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+                <!-- KPI 2 -->
+                <div class="col-xl-4 col-md-4 mb-2 mb-xl-0">
+                    <div class="card bg-danger text-white shadow-sm border-0 h-100">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 text-uppercase small">Prioridad Alta</h6>
+                                <h3 class="mb-0" id="kpiUrgentes">0</h3>
+                            </div>
+                            <i class="bi bi-exclamation-triangle text-white-50 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+                <!-- KPI 3 -->
+                <div class="col-xl-4 col-md-4 mb-2 mb-xl-0">
+                    <div class="card bg-success text-white shadow-sm border-0 h-100">
+                        <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 text-uppercase small">Instalaciones OK</h6>
+                                <h3 class="mb-0" id="kpiOK">0</h3>
+                            </div>
+                            <i class="bi bi-check2-circle text-white-50 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="container-fluid px-4">
+        <div class="row">
+            <!-- Columna Lateral: Subida y Búsqueda -->
+            <div class="col-lg-3 mb-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-cloud-upload"></i> Cargar Planilla</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted">Sube tu CSV exportado con los tickets de instalación.</p>
+                        <form id="uploadInstalaciones">
+                            <div class="mb-3">
+                                <input type="file" id="csvFileInst" accept=".csv" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-upload"></i> Subir Archivo</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-search"></i> Filtro Rápido</h6>
+                    </div>
+                    <div class="card-body">
+                        <input type="text" id="buscadorInst" class="form-control" placeholder="Nº Ticket, Equipo o Usuario...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Principal: Tabla -->
+            <div class="col-lg-9">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-secondary"><i class="bi bi-tools"></i> Cronograma de Instalaciones</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: calc(100vh - 300px); overflow-y: auto;">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light sticky-top" style="z-index: 10;">
+                                    <tr>
+                                        <th class="px-3">Ticket / Fecha</th>
+                                        <th>Equipo (CSV)</th>
+                                        <th>Cruce GLPI (Por Ticket)</th>
+                                        <th>Usuario / Ubicación</th>
+                                        <th>Prioridad / Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaInstalaciones"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let instData = [];
+        let glpiData = [];
+
+        // Función para leer dinámicamente columnas sin importar mayúsculas/minúsculas
+        function getVal(item, posibles) {
+            for (let prop in item) {
+                if (posibles.some(p => prop.toLowerCase().includes(p))) return item[prop];
+            }
+            return '';
+        }
+
+        // Cargar datos de GLPI en segundo plano
+        async function cargarGLPI() {
+            try {
+                const res = await fetch('/api/glpi');
+                glpiData = await res.json();
+            } catch (e) {
+                console.error("Error cargando GLPI", e);
+            }
+        }
+
+        function actualizarDashboard() {
+            const total = instData.length;
+            let urgentes = 0;
+            let ok = 0;
+
+            instData.forEach(item => {
+                const estado = getVal(item, ['estado']).toLowerCase();
+                const prioridad = getVal(item, ['prioridad']).toLowerCase();
+                if (prioridad.includes('alta') || prioridad.includes('urgente')) urgentes++;
+                if (estado.includes('ok') || estado.includes('completado')) ok++;
+            });
+
+            document.getElementById('kpiTotal').innerText = total;
+            document.getElementById('kpiUrgentes').innerText = urgentes;
+            document.getElementById('kpiOK').innerText = ok;
+        }
+
+        function renderizarInstalaciones(data) {
+            const tbody = document.getElementById('tablaInstalaciones');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No hay instalaciones pendientes</td></tr>';
+                return;
+            }
+
+            data.forEach(item => {
+                const ticket = getVal(item, ['ticket', 'n° ticket', 'nº ticket']) || 'S/T';
+                const fecha = getVal(item, ['fecha']) || 'Sin fecha';
+                
+                const eqEntrante = getVal(item, ['nombre equipo entrante', 'equipo entrante']);
+                const eqSaliente = getVal(item, ['nombre equipo saliente', 'equipo saliente']);
+                const modelo = getVal(item, ['modelo', 'equipo']) || 'N/A';
+                const equipoAmostrar = eqEntrante ? `${eqEntrante}` : (eqSaliente ? eqSaliente : modelo);
+
+                const usuario = getVal(item, ['usuario', 'asignado', 'responsable']) || 'Sin asignar';
+                const destino = getVal(item, ['ubicación', 'destino', 'sala']) || 'Ubicación no especificada';
+                const estado = getVal(item, ['estado', 'status']) || 'Pendiente';
+                const prioridad = getVal(item, ['prioridad']) || 'NORMAL';
+
+                // Colores
+                let badgeEstado = 'bg-secondary';
+                if (estado.toLowerCase().includes('ok')) badgeEstado = 'bg-success';
+                else if (estado.toLowerCase().includes('proceso')) badgeEstado = 'bg-warning text-dark';
+
+                let badgePrioridad = 'bg-info text-dark';
+                if (prioridad.toLowerCase().includes('alta')) badgePrioridad = 'bg-danger';
+
+                // CRUCE CON GLPI (Por número de Ticket)
+                let glpiInfo = '<span class="text-muted small fst-italic">Sin registro en GLPI</span>';
+                
+                if (glpiData.length > 0 && ticket !== 'S/T') {
+                    // Busca si el número de ticket exacto existe en alguna celda del archivo GLPI
+                    let match = glpiData.find(g => Object.values(g).some(v => String(v).toLowerCase().includes(ticket.toLowerCase())));
+                    
+                    if (match) {
+                        const glpiUser = getVal(match, ['usuario', 'user', 'técnico', 'contacto', 'asignado']) || 'N/A';
+                        glpiInfo = `<span class="badge bg-primary"><i class="bi bi-person-badge"></i> GLPI: ${glpiUser}</span>`;
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-3">
+                        <strong>${ticket}</strong><br>
+                        <span class="small text-muted">${fecha.substring(0,10)}</span>
+                    </td>
+                    <td class="fw-bold text-primary">${equipoAmostrar}</td>
+                    <td>${glpiInfo}</td>
+                    <td>
+                        <i class="bi bi-person"></i> ${usuario}<br>
+                        <i class="bi bi-geo-alt text-muted small"></i> <span class="small text-muted">${destino}</span>
+                    </td>
+                    <td>
+                        <span class="badge ${badgePrioridad} mb-1">${prioridad}</span><br>
+                        <span class="badge ${badgeEstado}">${estado}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function cargarInstalaciones() {
+            const response = await fetch('/api/instalaciones');
+            instData = await response.json();
+            actualizarDashboard();
+            renderizarInstalaciones(instData);
+        }
+
+        document.getElementById('buscadorInst').addEventListener('input', (e) => {
+            const texto = e.target.value.toLowerCase();
+            const filtrados = instData.filter(item => JSON.stringify(item).toLowerCase().includes(texto));
+            renderizarInstalaciones(filtrados);
+        });
+
+        document.getElementById('uploadInstalaciones').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('archivo', document.getElementById('csvFileInst').files[0]);
+
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            btn.innerHTML = 'Cargando...';
+
+            const response = await fetch('/api/upload-instalaciones', { method: 'POST', body: formData });
+            if (response.ok) {
+                document.getElementById('csvFileInst').value = '';
+                await cargarInstalaciones();
+            } else {
+                alert('Error al subir el CSV');
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-upload"></i> Subir Archivo';
+        });
+
+        // Carga primero GLPI, luego instalaciones para asegurar el cruce
+        cargarGLPI().then(() => {
+            cargarInstalaciones();
+        });
+    </script>
+    <!-- SCRIPT MODO OSCURO -->
+    <script>
+        const btnDark = document.getElementById('btnDarkMode');
+        const htmlEl = document.documentElement;
+        
+        // 1. Revisar si el usuario ya tenía el modo oscuro guardado
+        if (localStorage.getItem('theme') === 'dark') {
+            htmlEl.setAttribute('data-bs-theme', 'dark');
+            btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+        }
+
+        // 2. Acción al hacer clic en el botón
+        btnDark.addEventListener('click', () => {
+            if (htmlEl.getAttribute('data-bs-theme') === 'dark') {
+                htmlEl.setAttribute('data-bs-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                btnDark.innerHTML = '<i class="bi bi-moon-stars"></i>';
+            } else {
+                htmlEl.setAttribute('data-bs-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                btnDark.innerHTML = '<i class="bi bi-sun-fill text-warning"></i>';
+            }
+        });
+    </script>
+</body>
+</html>
